@@ -1,0 +1,167 @@
+---
+title: "Building Permits Data"
+author: "Curtis C. Bohlen, Casco Bay Estuary Partnership."
+date: "06/02/2022"
+output:
+  github_document:
+    toc: true
+    fig_width: 5
+    fig_height: 4
+---
+
+<img
+    src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
+    style="position:absolute;top:10px;right:50px;" />
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 5, fig.height = 4,
+                      collapse = TRUE, comment = "#>")
+```
+
+# Introduction
+Housing data and housing starts reflect economic activity and signal the level
+of land use change ocurring at any given time.  Federal sources track and make
+public town by town data on housing permits. Here we develop R code to
+produce graphics similar to the graphic on building permits included in the 
+State of Casco Bay report.  (The actual graphic used in the Report was produced
+in Excel.  See the acompanying Excel Spreadsheet for details).
+
+# Load Libraries
+```{r}
+library(tidyverse)
+
+library(CBEPgraphics)
+load_cbep_fonts()
+theme_set(theme_cbep())
+```
+
+# Folder References
+```{r}
+sibfldnm <- 'Data'
+parent <- dirname(getwd())
+sibling <- paste(parent,sibfldnm, sep = '/')
+
+#dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
+```
+
+# Load Data
+```{r load_data}
+the_data <- read_csv(file.path(sibling, 'bldgpermits.csv'))
+```
+
+
+```{r}
+totals <- the_data %>%
+  group_by (Year) %>%
+  summarize(across(Total:QuintPlus, sum, na.rm = TRUE))
+```
+  
+# Graphics
+## Total Building Permits 1980 through 2018
+```{r}
+ggplot(totals, aes(Year, Total)) +
+  geom_col(fill = cbep_colors()[2]) +
+  ylab("Total Housing Units Permitted") +
+  ggtitle("Total Residential Building Permits\nAll Watershed Towns") +
+  theme_cbep(base_size = 12)
+```
+# Building Permits by Number of Units
+```{r fig.width = 7}
+totals %>%
+  select(-Total) %>%
+  pivot_longer(-Year, names_to = "Size", values_to = "Units") %>%
+  mutate(Size = factor(Size, levels = c("Single", "Duplex", "TripQuad", 
+                                        "QuintPlus", "Multifamily"),
+                             labels = c("Single", "Duplex", "Triple or Quad", 
+                                        "Five or More", "Multifamily"))) %>%
+ggplot(aes(Year, Units, fill = Size)) +
+  geom_col() +
+  scale_fill_manual(values = cbep_colors()) +
+  ylab("Housing Units Permitted") +
+  ggtitle("Residential Building Permits\nAll Watershed Towns") +
+  theme_cbep(base_size = 14)
+```
+  
+It looks as though the proportion of single homes is inversely related to the 
+total number of permitted housing units.  let's first look at the NUMBER of
+housing units permitted in each year,a s a function of the total number 
+permitted.
+
+## Hot Real Estate Markets
+### All Sizes of Structures Increase
+```{r}
+ long_totals <- totals %>%  pivot_longer(-c(Year, Total), 
+                               names_to = "Size", 
+                               values_to = "Count") %>%
+  mutate(Size = factor(Size, levels = c("Single", "Duplex", "TripQuad", 
+                                        "QuintPlus", "Multifamily"),
+                             labels = c("Single", "Duplex", "Triple or Quad", 
+                                        "Five or More", "Multifamily")))
+```
+
+```{r}
+ggplot(long_totals, aes(Total, Count)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y~s(x, k = 4)) +
+  ylab("Number of Units Permitted") +
+  xlab('Total Housing Units Permitted') +
+  ggtitle("Residential Building Permits\nAll Watershed Towns") +
+  facet_wrap(~Size, scales = 'free_y') +
+  theme_cbep(base_size = 12) +
+  theme(axis.text.x = element_text(size = 8))
+```
+When the housing market is hot, the number of all types of housing being 
+built goes up.  The relationship is not wildly far from linear for any size of 
+housing (But note the different vertical scales!). 
+
+### A Shift to Larger Units
+```{r}
+props <- totals %>%
+  mutate(Single = Single/Total,
+         Duplex = Duplex/Total,
+         TripQuad = TripQuad / Total,
+         QuintPlus = QuintPlus/Total,
+         Multifamily = Multifamily / Total
+         )
+```
+
+```{r}
+cor(props)
+```
+
+So, Years with lots of new housing units are also years with large numbers of 
+larger housing units, and a smaller proportion of single family dwellings.
+
+
+```{r}
+long_props <- props %>%  pivot_longer(-c(Year, Total), 
+                               names_to = "Size", 
+                               values_to = "Proportion") %>%
+  mutate(Size = factor(Size, levels = c("Single", "Duplex", "TripQuad", 
+                                        "QuintPlus", "Multifamily"),
+                             labels = c("Single", "Duplex", "Triple or Quad", 
+                                        "Five or More", "Multifamily")))
+```
+
+```{r}
+ggplot(long_props, aes(Total, Proportion)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y~s(x, k = 4)) +
+  ylab("Proportion of Units Permitted") +
+  xlab('Total Housing Units Permitted') +
+  ggtitle("Residential Building Permits\nAll Watershed Towns") +
+  facet_wrap(~Size, scales = 'free_y') +
+  theme_cbep(base_size = 12) +
+  theme(axis.text.x = element_text(size = 8))
+```
+
+So, overall, when the housing market is hot, we tend to see construction  of 
+relatively more multifamily structures.  Single family dwellings are 90% of
+permitted dwellings when construction is slow, but drop to 75% when construction
+is booming.
+
+This is a correlation, so one should not interpret the results as simple 
+causation, because it is not at all clear which way the arrow of causation runs,
+or if both values change simultaneously due to market forces.
+  

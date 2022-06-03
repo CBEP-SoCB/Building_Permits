@@ -1,0 +1,27 @@
+Data  in "CBEP Building Permits Data.xlsx" was assembled by Tyler Walsh from on-line sources by copying and pasting blocks of data into Excel.
+
+File Structure:
+Large Blocks in Excel, 
+Three Towns are missing:
+Albany Twp -- Almost 75% of this town in the watershed
+Greenwood
+Mason Twp
+
+JUST Residential Construction
+
+Large block, organized by township, columns are dates, rows are sizes of buildings 
+
+
+Three rows of Location Data
+     Header
+     Town
+     County
+One row of Dates (Years)
+Six rows of Data
+     Total Units
+     Units in Single-Family Structures
+     Units in All Multi-Family Structures
+     Units in 2-unit Multi-Family Structures
+     Units in 3- and 4-unit Multi-Family Structures
+     Units in 5+ Unit Multi-Family Structures
+One Empty Row
